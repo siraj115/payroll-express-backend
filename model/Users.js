@@ -1,4 +1,4 @@
-const connection = require('../connection');
+const {db} = require('../connection');
 const {sutando, Model, compose, HasUniqueIds} = require('sutando');
 const uuid  = require('uuid');
 
