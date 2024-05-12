@@ -12,9 +12,10 @@ exports.login = async(req,res)=>{
             const wherearr = {}
             wherearr.email = username;
             wherearr.status = 1;
-            //console.log(wherearr)
+           // console.log(wherearr)
             //wherearr.password = password;
             const users = await Users.query().where(wherearr).first()
+            console.log(users)
             if(!users){
                return  res.status(500).json({ message: 'User not found', errortype: 2 });               
             }
@@ -33,40 +34,22 @@ exports.login = async(req,res)=>{
             }
             //console.log(errortype)
             if(errortype ==1){
-                console.log('hi')
+                //console.log('hi')
                 const id = users.id;
                 const accessToken = generateToken({ userId: id,username });
                 const refreshToken=generateRefreshToken({userId:id})
                  // Assigning refresh token in http-only cookie  
-                console.log('accessToken',accessToken)
-                console.log('refreshToken',refreshToken)
+                //console.log('accessToken',accessToken)
+                //console.log('refreshToken',refreshToken)
                 //console.log(res)
                 res.cookie('jwt', refreshToken);/* , { httpOnly: false,  
                     sameSite: 'None', secure: false,  
                     maxAge: 24 * 60 * 60 * 1000 }*/
 
-                return res.status(statuscode).json({ message, errortype, id, accessToken})
+                return res.status(statuscode).json({ message, errortype, id, accessToken,username})
             }
             
-            /*bcrypt.compare(password, users.password, (err, data) => {
-                //if error than throw error
-                if (err) throw err
-
-                //if both match than you can do anything
-                let statuscode, message, errortype = '';
-                if (data) {
-                    statuscode = 200;
-                    message = 'Login Success';
-                    errortype = 1;
-                } else {
-                    statuscode = 404;
-                    message = 'Credentials dint match';
-                    errortype =2;
-                    
-                }
-               
-
-            })*/
+           
         }else{
             res.status(500).json({ message: 'Username and Password are mandatory' });           
         }
@@ -129,6 +112,8 @@ exports.saveUser = async(req, res)=>{
             
         }else if(user.name != '' && user.dob != '' && user.gender !='' && user.country != '' && user.phoneno !='' && user.email != '' && user.address !='' && user.employee_type != '' && user.employee_role != '' && user.salary !=''){
             user.password = hash;
+            user.status = 1;
+            user.canlogin =0;
             await user.save();
             errortype = 1;
             statuscode = 200;
