@@ -15,6 +15,8 @@ const init = {
             table.string('employee_type');
             table.string('employee_role');
             table.string('salary');
+            table.tinyint('canlogin');
+            table.tinyint('status');
             table.uuid('created_by');
             table.uuid('updated_by');
             table.timestamps();
