@@ -7,11 +7,13 @@ const init = {
             table.string('name');
             table.string('email');
             table.text('password');
+            table.integer('empno');
             table.date('dob');
             table.text('address');
             table.string('gender');
             table.string('country');
             table.string('phoneno');
+            table.string('employee_photo');
             table.string('employee_type');
             table.string('employee_role');
             table.string('salary');
