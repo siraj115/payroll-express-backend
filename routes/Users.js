@@ -15,9 +15,10 @@ router.post("/saveuser", upload.single('userphoto[]'), UserModule.saveUser);
 router.get("/getuser/:empid", UserModule.getUser);
 router.post("/savebasicdetails",cpUpload, UserModule.savebasicdetails);    
 router.get("/getuserbasic/:empid", UserModule.getUserBasic);  
-router.post("/login", UserModule.login);  
 
-router.get("/listuser", jwtMiddleware, UserModule.listUser);  
+router.post("/login", UserModule.login);  
+//jwtMiddleware,
+router.get("/listuser",  UserModule.listUser);  
 
 
 module.exports = router;

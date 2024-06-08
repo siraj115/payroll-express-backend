@@ -17,6 +17,7 @@ const bucketName = process.env.BUCKET_NAME
 const bucketRegion = process.env.BUCKET_REGION
 const accessKey = process.env.ACCESS_KEY
 const secretAccessKey  = process.env.SECRET_ACCESS_KEY
+const fileExpirySession  = process.env.FILE_EXPIRY_SESSION
 
 const s3 = new S3Client({
     credentials:{
@@ -82,9 +83,12 @@ exports.login = async(req,res)=>{
 
 exports.listUser = async(req, res)=>{
     try{
-    const users_query = Users.query().where('status',1);
-    const users = await users_query.get()
-    //console.log(users)
+    const {currentpage} = req.query
+    
+    const users_query = await Users.query().where('status',1).orderBy('created_at','desc');
+    const users = await users_query.paginate(currentpage,2)
+    //const users = await db.table('users').select('id','name','email','gender','country','phoneno','employee_type','employee_role','status').paginate(1,2).get()
+    console.log(users)
     const result = {
         msg: 'success',
         errortype: 1,
@@ -92,6 +96,7 @@ exports.listUser = async(req, res)=>{
     }
     res.status(200).json(result)
     }catch(err){
+        console.log(err)
         res.status(500).json({msg:'Internal server error'})
     }
 }
@@ -115,6 +120,7 @@ exports.saveUser = async(req, res)=>{
     const user_json={
         name, dob, gender, country,phoneno: phone, email, address, employee_type:emp_type, employee_role:emp_role, salary, empno, canlogin
     }
+    user_json.canlogin = (canlogin!='false')?1:0;
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(process.env.OTHER_PLAIN_TEXT, salt);
     //console.log(hash)
@@ -162,7 +168,7 @@ exports.saveUser = async(req, res)=>{
         //console.log(user);return false;
         //user.password = hash;
         user_json.updated_by = login_id;
-        
+        console.log(user_json)
         const userExist = await Users.query().where('id',userid).update(user_json)
         errortype  =1;
         statuscode  = 200;
@@ -190,7 +196,7 @@ exports.getUser = async(req,res)=>{
         if(empid != null){
             const userExist = await Users.query().where('id',empid).first()
             let labour_card_url = '';
-            if(userExist.employee_photo!=''){
+            if(userExist.employee_photo!=null){
                 const getObjectParams_passport = {
                     Bucket: bucketName,
                     Key: userExist.employee_photo
@@ -230,7 +236,7 @@ exports.savebasicdetails = async(req,res)=>{
                 let passport_name =  randomName(); 
                 //const buffer_img = await sharp(uploaded_files['passportupload[]'].buffer).resize({height:200, width:200, fit:'contain'}).toBuffer();
                 const buffer_img = uploaded_files['passportupload[]'][0].buffer;
-                if(userExist.passport_upload){
+                if(userExist?.passport_upload){
                     const delParams = {
                         Bucket: bucketName,
                         Key: userExist.passport_upload
@@ -251,7 +257,7 @@ exports.savebasicdetails = async(req,res)=>{
             if(uploaded_files['visaupload[]']){
                 let passport_name =  randomName(); 
                 //const buffer_img = await sharp(uploaded_files['passportupload[]'].buffer).resize({height:200, width:200, fit:'contain'}).toBuffer();
-                if(userExist.visa_expiry_upload){
+                if(userExist?.visa_expiry_upload){
                     const delParams = {
                         Bucket: bucketName,
                         Key: userExist.visa_expiry_upload
@@ -273,7 +279,7 @@ exports.savebasicdetails = async(req,res)=>{
             if(uploaded_files['eidupload[]']){
                 let passport_name =  randomName(); 
                 //const buffer_img = await sharp(uploaded_files['passportupload[]'].buffer).resize({height:200, width:200, fit:'contain'}).toBuffer();
-                if(userExist.eid_expiry_upload){
+                if(userExist?.eid_expiry_upload){
                     const delParams = {
                         Bucket: bucketName,
                         Key: userExist.eid_expiry_upload
@@ -295,7 +301,7 @@ exports.savebasicdetails = async(req,res)=>{
             if(uploaded_files['labourcardupload[]']){
                 let passport_name =  randomName(); 
                 //const buffer_img = await sharp(uploaded_files['passportupload[]'].buffer).resize({height:200, width:200, fit:'contain'}).toBuffer();
-                if(userExist.labour_card_upload){
+                if(userExist?.labour_card_upload){
                     const delParams = {
                         Bucket: bucketName,
                         Key: userExist.labour_card_upload
@@ -315,11 +321,17 @@ exports.savebasicdetails = async(req,res)=>{
                 user_json.labour_card_upload = passport_name
             }
 
-
-
-            await UsersBasics.query().where('userid',userid).delete()
-            usersdetails = new UsersBasics(user_json)
-            await usersdetails.save();
+            if(userExist !=null){
+                await UsersBasics.query().where('userid',userid).update(user_json)
+            }else{
+                const usersdetails = new UsersBasics(user_json)
+                await usersdetails.save();
+            }
+            
+            //await UsersBasics.query().where('userid',userid).delete()
+            
+            
+            
             errortype = 1;
             statuscode = 200;
             msg = 'Basic details updated!'
@@ -335,50 +347,55 @@ exports.savebasicdetails = async(req,res)=>{
 }
 exports.getUserBasic = async(req,res)=>{
     try{
+        
 //27b8e71d-6f93-40b2-b36b-5bff4df00cf7
         const {empid} = req.params;
         if(empid != null){
             const userExist = await UsersBasics.query().where('userid',empid).first()
-            let passport_url = '';
-            if(userExist.passport_upload!=null){
-                const getObjectParams_passport = {
-                    Bucket: bucketName,
-                    Key: userExist.passport_upload
+            console.log(userExist)
+            if(userExist != null){
+                let passport_url = '';
+                if(userExist.passport_upload!=null){
+                    const getObjectParams_passport = {
+                        Bucket: bucketName,
+                        Key: userExist.passport_upload
+                    }
+                    const command = new GetObjectCommand(getObjectParams_passport);
+                    passport_url = await getSignedUrl(s3, command, { expiresIn: fileExpirySession });
                 }
-                const command = new GetObjectCommand(getObjectParams_passport);
-                passport_url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-            }
-            userExist.passport_url = passport_url;
-            let visa_expiry_url = '';
-            if(userExist.visa_expiry_upload!=null){
-                const getObjectParams_passport = {
-                    Bucket: bucketName,
-                    Key: userExist.visa_expiry_upload
+                userExist.passport_url = passport_url;
+                let visa_expiry_url = '';
+                if(userExist.visa_expiry_upload!=null){
+                    const getObjectParams_passport = {
+                        Bucket: bucketName,
+                        Key: userExist.visa_expiry_upload
+                    }
+                    const command = new GetObjectCommand(getObjectParams_passport);
+                    visa_expiry_url = await getSignedUrl(s3, command, { expiresIn: fileExpirySession });
                 }
-                const command = new GetObjectCommand(getObjectParams_passport);
-                visa_expiry_url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-            }
-            userExist.visa_expiry_upload = visa_expiry_url;
-            let eid_expiry_url = '';
-            if(userExist.eid_expiry_upload!=null){
-                const getObjectParams_passport = {
-                    Bucket: bucketName,
-                    Key: userExist.eid_expiry_upload
+                userExist.visa_expiry_upload = visa_expiry_url;
+                let eid_expiry_url = '';
+                console.log(userExist.eid_expiry_upload)
+                if(userExist.eid_expiry_upload!=null){
+                    const getObjectParams_passport = {
+                        Bucket: bucketName,
+                        Key: userExist.eid_expiry_upload
+                    }
+                    const command = new GetObjectCommand(getObjectParams_passport);
+                    eid_expiry_url = await getSignedUrl(s3, command, { expiresIn: fileExpirySession });
                 }
-                const command = new GetObjectCommand(getObjectParams_passport);
-                visa_expiry_url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-            }
-            userExist.eid_expiry_upload = eid_expiry_url;
-            let labour_card_url = '';
-            if(userExist.labour_card_upload!=null){
-                const getObjectParams_passport = {
-                    Bucket: bucketName,
-                    Key: userExist.labour_card_upload
+                userExist.eid_expiry_upload = eid_expiry_url;
+                let labour_card_url = '';
+                if(userExist.labour_card_upload!=null){
+                    const getObjectParams_passport = {
+                        Bucket: bucketName,
+                        Key: userExist.labour_card_upload
+                    }
+                    const command = new GetObjectCommand(getObjectParams_passport);
+                    labour_card_url = await getSignedUrl(s3, command, { expiresIn: fileExpirySession });
                 }
-                const command = new GetObjectCommand(getObjectParams_passport);
-                labour_card_url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+                userExist.labour_card_upload = labour_card_url;
             }
-            userExist.labour_card_upload = labour_card_url;
             res.status(200).json({data:userExist})
         }else{
             res.status(500).json({msg:'Employee ID cannot be null'})    
@@ -388,3 +405,4 @@ exports.getUserBasic = async(req,res)=>{
         res.status(500).json({msg:'Internal server error'})
     }
 }
+
