@@ -38,7 +38,7 @@ exports.login = async(req,res)=>{
            // console.log(wherearr)
             //wherearr.password = password;
             const users = await Users.query().where(wherearr).first()
-            console.log(users)
+            //console.log(users)
             if(!users){
                return  res.status(500).json({ message: 'User not found', errortype: 2 });               
             }
@@ -84,11 +84,11 @@ exports.login = async(req,res)=>{
 exports.listUser = async(req, res)=>{
     try{
     const {currentpage} = req.query
-    
+    const perpage       = 10;
     const users_query = await Users.query().where('status',1).orderBy('created_at','desc');
-    const users = await users_query.paginate(currentpage,2)
+    const users = await users_query.paginate(currentpage,perpage)
     //const users = await db.table('users').select('id','name','email','gender','country','phoneno','employee_type','employee_role','status').paginate(1,2).get()
-    console.log(users)
+    //console.log(users)
     const result = {
         msg: 'success',
         errortype: 1,
@@ -105,9 +105,9 @@ exports.saveUser = async(req, res)=>{
         
     let imageName =  ''; 
     //const userReq = req.body;
-    const {name, dob, gender, country, phone, email, address, emp_type, emp_role, salary, empno, login_id, canlogin, id} = req.body;
-    console.log('req.body ',req.body   );
-    console.log('req.file',req.file);
+    const {name, dob, gender, country, phone, email, address, emp_type, emp_role, salary, empno, login_id, canlogin, datejoining, workphone, id} = req.body;
+    //console.log('req.body ',req.body   );
+    //console.log('req.file',req.file);
     //req.file.buffer
     
 
@@ -118,7 +118,7 @@ exports.saveUser = async(req, res)=>{
 
    
     const user_json={
-        name, dob, gender, country,phoneno: phone, email, address, employee_type:emp_type, employee_role:emp_role, salary, empno, canlogin
+        name, dob, gender, country,phoneno: phone, email, address, employee_type:emp_type, employee_role:emp_role, salary, empno, canlogin, workphone, datejoining
     }
     user_json.canlogin = (canlogin!='false')?1:0;
     const salt = bcrypt.genSaltSync(10);
@@ -140,22 +140,26 @@ exports.saveUser = async(req, res)=>{
     }
     if(userid == null){
         
-        console.log(email)
-        const userExist = await Users.query().where('email',email).first()
-        //console.log(userExist);//return false;
-
-        if(userExist){
+        //console.log(email)
+        let userExist = {}
+        if(email !=''){
+             userExist = await Users.query().where('email',email).first()
+            //console.log(userExist);//return false;
+        }
+        //console.log(userExist)
+        if(userExist && email!=''){
             errortype = 2;
             statuscode = 500;
             msg = "Employee already exist with the given email id";
             
-        }else if(name != '' && dob != '' && gender !='' && country != '' && phone !='' && email != '' && address !='' && emp_type != '' && emp_role != '' && salary !=''){
+        }else if(name != '' && dob != '' && gender !='' && country != '' && phone !='' && address !='' && emp_type != '' && emp_role != '' && salary !='' && workphone !='' && datejoining !=''){
+            //email != '' && 
             password = hash;
             user_json.password = password;
             user_json.status = 1;
             //user_json.canlogin =canlogin;
             user_json.created_by =login_id;
-            console.log(user_json)
+            //console.log(user_json)
             usersdetails = new Users(user_json)
             await usersdetails.save();
             errortype = 1;
@@ -168,7 +172,7 @@ exports.saveUser = async(req, res)=>{
         //console.log(user);return false;
         //user.password = hash;
         user_json.updated_by = login_id;
-        console.log(user_json)
+        //console.log(user_json)
         const userExist = await Users.query().where('id',userid).update(user_json)
         errortype  =1;
         statuscode  = 200;
@@ -217,19 +221,19 @@ exports.getUser = async(req,res)=>{
 
 exports.savebasicdetails = async(req,res)=>{
     try{
-        const {passport, passportupload, visaexpiry, visaupload, eid, eidupload, login_id, workpermit, personalno, personalaccno, labourcardupload, userid} = req.body;
+        const {passport, passportupload, passport_expiry, visano, visaexpiry, visaupload, eidno, eidexpiry, eidupload, login_id, workpermit, workpermitexpiry,  personalno, personalaccno, labourcardupload, userid} = req.body;
         let errortype = 2;
         let statuscode = 400;
         let msg = 'ALl fields are mandatory';
         
         const uploaded_files = req.files;
-        console.log('req.file',uploaded_files);
+        //console.log('req.file',uploaded_files);
         const user_json={
-            passport, passport_upload:passportupload, visa_expiry:visaexpiry, visa_expiry_upload:visaupload, eid_expiry:eid, eid_expiry_upload:eidupload, work_permit:workpermit, personal_no:personalno, personal_acc_no:personalaccno, labour_card_upload:labourcardupload, userid
+            passport, passport_upload:passportupload, passport_expiry, visano, visa_expiry:visaexpiry, visa_expiry_upload:visaupload, eidno, eid_expiry:eidexpiry, eid_expiry_upload:eidupload, work_permit:workpermit, personal_no:personalno, personal_acc_no:personalaccno, labour_card_upload:labourcardupload, work_permit_expiry: workpermitexpiry,userid
         }
         user_json.created_by =login_id;
         //passportupload !='' && visaupload !='' &&  eidupload !=''
-        if(passport !='' &&   visaexpiry !='' &&    eid !=''  && workpermit !=''  && personalno !=''  && personalaccno !=''  ){
+        if(passport !='' &&   visaexpiry !='' &&    eidno !=''  && workpermit !=''  && personalno !=''  && personalaccno !=''  ){
             //console.log(user_json)
             const userExist = await UsersBasics.query().where('userid',userid).first()
             if(uploaded_files['passportupload[]']){
@@ -352,7 +356,7 @@ exports.getUserBasic = async(req,res)=>{
         const {empid} = req.params;
         if(empid != null){
             const userExist = await UsersBasics.query().where('userid',empid).first()
-            console.log(userExist)
+            //console.log(userExist)
             if(userExist != null){
                 let passport_url = '';
                 if(userExist.passport_upload!=null){
@@ -375,7 +379,7 @@ exports.getUserBasic = async(req,res)=>{
                 }
                 userExist.visa_expiry_upload = visa_expiry_url;
                 let eid_expiry_url = '';
-                console.log(userExist.eid_expiry_upload)
+                //console.log(userExist.eid_expiry_upload)
                 if(userExist.eid_expiry_upload!=null){
                     const getObjectParams_passport = {
                         Bucket: bucketName,
