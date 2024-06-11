@@ -10,6 +10,7 @@ const init = {
             table.string('contactemail');
             table.text('address');
             table.string('companytrn');
+            table.integer('status').defaultTo(1);
             table.timestamps();
             table.primary('id');
             table.uuid('created_by');
@@ -29,6 +30,7 @@ const init = {
             table.string('amountfemale');
             table.string('amountsupervisor');
             table.string('vattax');
+            table.integer('status').defaultTo(1);
             table.string('contractpdf');
             table.uuid('created_by');
             table.uuid('updated_by');

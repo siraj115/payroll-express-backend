@@ -84,7 +84,7 @@ exports.login = async(req,res)=>{
 exports.listUser = async(req, res)=>{
     try{
     const {currentpage} = req.query
-    const perpage       = 10;
+    const perpage       = 100;
     const users_query = await Users.query().where('status',1).orderBy('created_at','desc');
     const users = await users_query.paginate(currentpage,perpage)
     //const users = await db.table('users').select('id','name','email','gender','country','phoneno','employee_type','employee_role','status').paginate(1,2).get()
@@ -159,6 +159,7 @@ exports.saveUser = async(req, res)=>{
             user_json.status = 1;
             //user_json.canlogin =canlogin;
             user_json.created_by =login_id;
+            user_json.updated_by = login_id;
             //console.log(user_json)
             usersdetails = new Users(user_json)
             await usersdetails.save();
