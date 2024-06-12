@@ -9,11 +9,11 @@ const ClientModule = require("../modules/ClientModule");//user module test
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 
-router.post("/saveclient", ClientModule.saveClient);  
-router.get("/getclient/:clientid", ClientModule.getClient);  
-router.post("/saveclientcontract", upload.single('contractpdf[]'), ClientModule.saveClientContract);  
-router.get("/getclientcontract/:clientid", ClientModule.getClientContract);  
-router.get("/listclient", ClientModule.allclients);  
+router.post("/saveclient", jwtMiddleware, ClientModule.saveClient);  
+router.get("/getclient/:clientid", jwtMiddleware, ClientModule.getClient);  
+router.post("/saveclientcontract", jwtMiddleware, upload.single('contractpdf[]'), ClientModule.saveClientContract);  
+router.get("/getclientcontract/:clientid", jwtMiddleware, ClientModule.getClientContract);  
+router.get("/listclient", jwtMiddleware,ClientModule.allclients);  
 
 
 module.exports = router;

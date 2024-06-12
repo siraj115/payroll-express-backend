@@ -30,7 +30,7 @@ const s3 = new S3Client({
 exports.login = async(req,res)=>{
     try{
         const {username, password} = req.body;
-        //console.log(username, password);
+        console.log(username, password);
         if(username!='' && password !=''){
             const wherearr = {}
             wherearr.email = username;
@@ -40,20 +40,26 @@ exports.login = async(req,res)=>{
             const users = await Users.query().where(wherearr).first()
             //console.log(users)
             if(!users){
-               return  res.status(500).json({ message: 'User not found', errortype: 2 });               
+               return  res.status(200).json({ msg: 'User not found', errortype: 2 });               
             }
            // console.log(users.id, users.email, users.password)
 
             // compare hash pass from db.
-            if (bcrypt.compareSync(password, users.password)) {
+            console.log(users.canlogin)
+            if(users.canlogin==0){
+                statuscode = 200;
+                message     = 'You dont have access. Please contact adminstrator';
+                errortype = 2;
+                return res.status(statuscode).json({ msg: message, errortype})
+            }else if (bcrypt.compareSync(password, users.password)) {
                 statuscode = 200;
                     message = 'Login Success';
                     errortype = 1;
             } else {
-                 statuscode = 404;
+                 statuscode = 200;
                     message = 'Credentials dint match';
                     errortype =2;
-                    return res.status(statuscode).json({ message, errortype})
+                    return res.status(statuscode).json({ msg: message, errortype})
             }
             //console.log(errortype)
             if(errortype ==1){
@@ -69,14 +75,15 @@ exports.login = async(req,res)=>{
                     sameSite: 'None', secure: false,  
                     maxAge: 24 * 60 * 60 * 1000 }*/
 
-                return res.status(statuscode).json({ message, errortype, id, accessToken,username})
+                return res.status(statuscode).json({ msg:message, errortype, id, accessToken,username})
             }
             
            
         }else{
-            res.status(500).json({ message: 'Username and Password are mandatory' });           
+            res.status(200).json({ message: 'Username and Password are mandatory', errortype:2 });           
         }
     }catch(err){
+        console.log(err)
         res.status(500).json({ message: 'Server error' });
     }
 }
@@ -105,7 +112,7 @@ exports.saveUser = async(req, res)=>{
         
     let imageName =  ''; 
     //const userReq = req.body;
-    const {name, dob, gender, country, phone, email, address, emp_type, emp_role, salary, empno, login_id, canlogin, datejoining, workphone, id} = req.body;
+    const {name, dob, gender, country, phone, email, address, emp_type, emp_role, salary, empno, canlogin, datejoining, workphone, id, login_userid} = req.body;
     //console.log('req.body ',req.body   );
     //console.log('req.file',req.file);
     //req.file.buffer
@@ -158,8 +165,8 @@ exports.saveUser = async(req, res)=>{
             user_json.password = password;
             user_json.status = 1;
             //user_json.canlogin =canlogin;
-            user_json.created_by =login_id;
-            user_json.updated_by = login_id;
+            user_json.created_by =login_userid;
+            user_json.updated_by = login_userid;
             //console.log(user_json)
             usersdetails = new Users(user_json)
             await usersdetails.save();
@@ -172,7 +179,7 @@ exports.saveUser = async(req, res)=>{
     }else{
         //console.log(user);return false;
         //user.password = hash;
-        user_json.updated_by = login_id;
+        user_json.updated_by = login_userid;
         //console.log(user_json)
         const userExist = await Users.query().where('id',userid).update(user_json)
         errortype  =1;
@@ -222,7 +229,7 @@ exports.getUser = async(req,res)=>{
 
 exports.savebasicdetails = async(req,res)=>{
     try{
-        const {passport, passportupload, passport_expiry, visano, visaexpiry, visaupload, eidno, eidexpiry, eidupload, login_id, workpermit, workpermitexpiry,  personalno, personalaccno, labourcardupload, userid} = req.body;
+        const {passport, passportupload, passport_expiry, visano, visaexpiry, visaupload, eidno, eidexpiry, eidupload, login_userid, workpermit, workpermitexpiry,  personalno, personalaccno, labourcardupload, userid} = req.body;
         let errortype = 2;
         let statuscode = 400;
         let msg = 'ALl fields are mandatory';
@@ -232,9 +239,11 @@ exports.savebasicdetails = async(req,res)=>{
         const user_json={
             passport, passport_upload:passportupload, passport_expiry, visano, visa_expiry:visaexpiry, visa_expiry_upload:visaupload, eidno, eid_expiry:eidexpiry, eid_expiry_upload:eidupload, work_permit:workpermit, personal_no:personalno, personal_acc_no:personalaccno, labour_card_upload:labourcardupload, work_permit_expiry: workpermitexpiry,userid
         }
-        user_json.created_by =login_id;
+        
         //passportupload !='' && visaupload !='' &&  eidupload !=''
         if(passport !='' &&   visaexpiry !='' &&    eidno !=''  && workpermit !=''  && personalno !=''  && personalaccno !=''  ){
+            user_json.created_by =login_userid;
+            user_json.updated_by =login_userid;
             //console.log(user_json)
             const userExist = await UsersBasics.query().where('userid',userid).first()
             if(uploaded_files['passportupload[]']){
@@ -327,6 +336,7 @@ exports.savebasicdetails = async(req,res)=>{
             }
 
             if(userExist !=null){
+                user_json.updated_by =login_userid;
                 await UsersBasics.query().where('userid',userid).update(user_json)
             }else{
                 const usersdetails = new UsersBasics(user_json)

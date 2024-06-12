@@ -28,7 +28,7 @@ const s3 = new S3Client({
 })
 exports.saveClient = async (req,res)=>{
     //console.log(req.body)
-    const {companyname,contactname,contactphone,contactemail,address,companytrn,userid,id } = req.body;
+    const {companyname,contactname,contactphone,contactemail,address,companytrn,login_userid,id } = req.body;
     let errortype = 2;
     let statuscode = 400;
     let msg = 'ALl fields are mandatory';
@@ -40,8 +40,8 @@ exports.saveClient = async (req,res)=>{
     if(clientid ==null){
         if(companyname != '' && contactname != '' && contactphone != '' && contactemail != '' && address != '' && companytrn!=''){
             
-            client_json.created_by =userid;
-            client_json.updated_by = userid;
+            client_json.created_by =login_userid;
+            client_json.updated_by = login_userid;
             console.log(client_json)
             usersdetails = new Clients(client_json)
             await usersdetails.save();
@@ -51,7 +51,7 @@ exports.saveClient = async (req,res)=>{
             clientid = usersdetails.id;
         }
     }else{
-        client_json.updated_by = userid;
+        client_json.updated_by = login_userid;
         //console.log(user_json)
         const userExist = await Clients.query().where('id',clientid).update(client_json)
         errortype       = 1;
@@ -79,7 +79,7 @@ exports.getClient = async(req,res)=>{
 }
 
 exports.saveClientContract = async (req,res)=>{
-    const {contractstart, contractend, contractprice, countmale, countfemale, countsupervisor, amountmale, amountfemale, amountsupervisor, vattax, clientid, id , userid} = req.body;
+    const {contractstart, contractend, contractprice, countmale, countfemale, countsupervisor, amountmale, amountfemale, amountsupervisor, vattax, clientid, id , login_userid} = req.body;
     let errortype = 2;
     let statuscode = 400;
     let msg = 'ALl fields are mandatory';
@@ -114,13 +114,15 @@ exports.saveClientContract = async (req,res)=>{
             await s3.send(command)
             client_json.contractpdf = imageName
         }
-       
+       console.log(clientContractExist)
         if(clientContractExist != null){
-            client_json.created_by = userid;
-            client_json.updated_by = userid;
+            client_json.updated_by = login_userid;
             await ClientContractDetails.query().where('clientid',clientid).update(client_json)
         }else{
-            client_json.updated_by = userid;
+            console.log('save')
+            client_json.created_by  = login_userid;
+            client_json.updated_by  = login_userid;
+            client_json.clientid    = clientid;
             const usersdetails = new ClientContractDetails(client_json)
             await usersdetails.save();
         }
@@ -137,6 +139,7 @@ exports.getClientContract = async(req,res)=>{
         const {clientid} = req.params;
         if(clientid!=null){
             const clientExist = await ClientContractDetails.query().where('clientid',clientid).first()
+            var visa_expiry_url= ''
             if(clientExist.contractpdf!=null){
                 const getObjectParams_passport = {
                     Bucket: bucketName,
