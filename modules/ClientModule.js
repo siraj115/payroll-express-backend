@@ -204,10 +204,13 @@ exports.getClientalldetails = async(req,res)=>{
     try{
         const {clientid} = req.params;
         const client = await Clients.query().find(clientid);
+        if(!client){
+            return res.status(200).json({errortype:2, msg:'Client not found'})            
+        }
         const clientContract = await client.related('ClientContractDetails').get()
-    
-        client.contractdetails = clientContract;
-        res.status(200).json({msg:'Success', client})
+        client.contractdetails = clientContract || null;
+
+        return res.status(200).json({msg:'Success 1', data:client})
     }catch(err){
         console.log(err)
         res.status(500).json({msg:'Internal server error'})
