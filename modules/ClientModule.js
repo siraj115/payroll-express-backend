@@ -37,6 +37,7 @@ exports.saveClient = async (req,res)=>{
     const client_json = {
         companyname,contactname,contactphone,contactemail,address,companytrn
     }
+    let type='insert'
     if(clientid ==null){
         if(companyname != '' && contactname != '' && contactphone != '' && contactemail != '' && address != '' && companytrn!=''){
             
@@ -51,6 +52,7 @@ exports.saveClient = async (req,res)=>{
             clientid = usersdetails.id;
         }
     }else{
+        type='update'
         client_json.updated_by = login_userid;
         //console.log(user_json)
         const userExist = await Clients.query().where('id',clientid).update(client_json)
@@ -59,7 +61,7 @@ exports.saveClient = async (req,res)=>{
         msg             = "Successfully updated client details";
         //userid          = userid;
     }
-    res.status(statuscode).json({msg, errortype,clientid})
+    res.status(statuscode).json({msg, errortype,clientid,type})
 }
 
 exports.getClient = async(req,res)=>{
@@ -162,6 +164,7 @@ exports.getClientContract = async(req,res)=>{
 exports.allclients = async(req,res)=>{
     try{
         const {currentpage} = req.query
+        console.log(currentpage)
         const perpage       = 100;
         const users_query   = await Clients.query().where('status',1).orderBy('created_at','desc');
         const users         = await users_query.paginate(currentpage,perpage)
@@ -177,4 +180,37 @@ exports.allclients = async(req,res)=>{
             console.log(err)
             res.status(500).json({msg:'Internal server error'})
         }
+}
+exports.allClientNames = async(req,res)=>{
+    try{
+        
+        const users_query   = Clients.query().where('status',1).orderBy('companyname','asc');
+        const users         = await users_query.get()
+        //const users = await db.table('users').select('id','name','email','gender','country','phoneno','employee_type','employee_role','status').paginate(1,2).get()
+        //console.log(users)
+        const result = {
+            msg: 'success',
+            errortype: 1,
+            data: users
+        }
+        res.status(200).json(result)
+        }catch(err){
+            console.log(err)
+            res.status(500).json({msg:'Internal server error'})
+        }
+}
+
+exports.getClientalldetails = async(req,res)=>{
+    try{
+        const {clientid} = req.params;
+        const client = await Clients.query().find(clientid);
+        const clientContract = await client.related('ClientContractDetails').get()
+    
+        client.contractdetails = clientContract;
+        res.status(200).json({msg:'Success', client})
+    }catch(err){
+        console.log(err)
+        res.status(500).json({msg:'Internal server error'})
+    }
+    
 }

@@ -14,6 +14,8 @@ router.get("/getclient/:clientid", jwtMiddleware, ClientModule.getClient);
 router.post("/saveclientcontract", jwtMiddleware, upload.single('contractpdf[]'), ClientModule.saveClientContract);  
 router.get("/getclientcontract/:clientid", jwtMiddleware, ClientModule.getClientContract);  
 router.get("/listclient", jwtMiddleware,ClientModule.allclients);  
+router.get("/allclientnames", jwtMiddleware,ClientModule.allClientNames);  
+router.get("/getclientdetails/:clientid", ClientModule.getClientalldetails);  
 
 
 module.exports = router;

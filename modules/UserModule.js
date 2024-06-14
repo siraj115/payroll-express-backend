@@ -145,6 +145,7 @@ exports.saveUser = async(req, res)=>{
         await s3.send(command)
         user_json.employee_photo = imageName
     }
+    let type='insert';
     if(userid == null){
         
         //console.log(email)
@@ -177,6 +178,7 @@ exports.saveUser = async(req, res)=>{
         }
     
     }else{
+        type = 'update';
         //console.log(user);return false;
         //user.password = hash;
         user_json.updated_by = login_userid;
@@ -192,7 +194,8 @@ exports.saveUser = async(req, res)=>{
         msg,
         errortype,
         userid,
-        email
+        email,
+        type
     }
     res.status(statuscode).json(result)
     }catch(err){
