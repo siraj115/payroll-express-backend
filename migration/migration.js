@@ -30,7 +30,7 @@ const init = {
             table.uuid('id');
             table.uuid('userid');
             table.string('passport');
-            table.string('passport_expiry').defaultTo(NULL);
+            table.string('passport_expiry')
             table.string('passport_upload');
             table.string('visano');
             table.string('visa_expiry');
