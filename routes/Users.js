@@ -11,14 +11,15 @@ const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 const cpUpload = upload.fields([{ name: 'passportupload[]' }, { name: 'visaupload[]' }, { name: 'eidupload[]' }, { name: 'labourcardupload[]' }])
 
-router.post("/saveuser", upload.single('userphoto[]'), UserModule.saveUser);  
-router.get("/getuser/:empid", UserModule.getUser);
-router.post("/savebasicdetails",cpUpload, UserModule.savebasicdetails);    
-router.get("/getuserbasic/:empid", UserModule.getUserBasic);  
+router.post("/saveuser", jwtMiddleware, upload.single('userphoto[]'), UserModule.saveUser);  
+router.get("/getuser/:empid", jwtMiddleware, UserModule.getUser);
+router.post("/savebasicdetails", jwtMiddleware,cpUpload, UserModule.savebasicdetails);    
+router.get("/getuserbasic/:empid", jwtMiddleware, UserModule.getUserBasic);  
 
 router.post("/login", UserModule.login);  
 //jwtMiddleware,
-router.get("/listuser",  UserModule.listUser);  
+router.get("/listuser", jwtMiddleware, UserModule.listUser);  
+router.get("/listuser/:role", jwtMiddleware, UserModule.getEmployeesByCondition);  
 
 
 module.exports = router;

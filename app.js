@@ -9,6 +9,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 
 var usersRouter = require('./routes/Users');
+var clientRouter = require('./routes/Clients');
 
 var app = express();
 const isAuthenticated = (req, res, next) => {  
@@ -49,6 +50,7 @@ app.use('/api/users', isAuthenticated,usersRouter);
 app.use('/api/admin',isAuthenticated,adminRouter)*/
 
 app.use('/api/user',usersRouter)
+app.use('/api/client',clientRouter)
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
