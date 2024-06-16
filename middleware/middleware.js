@@ -13,10 +13,11 @@ const jwtMiddleware = (req, res, next) => {
       return res.status(200).json({ errortype:2 , msg: 'Token is missing'  });
     }
     const split_token = token.split(" ");
-    const fresh_token = split_token[1];
-
+    //console.log(split_token.length)    console.log(split_token)
+    const getIndex = (split_token.length==1)?0:1;
+    const fresh_token = split_token[getIndex];
   
-    jwt.verify(token, secret, (err, decoded) => {
+    jwt.verify(fresh_token, secret, (err, decoded) => {
       if (err) {
         console.error(err);
         return res.status(200).json({ errortype:2 , msg: 'Invalid token' });

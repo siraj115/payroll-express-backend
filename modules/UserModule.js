@@ -424,3 +424,30 @@ exports.getUserBasic = async(req,res)=>{
     }
 }
 
+
+exports.getEmployeesByCondition = async (req,res)=>{
+    try{
+        const {role} = req.params
+        if(role!=''){
+            const whereArr = {}
+            whereArr.status = 1;
+            whereArr.employee_role = role;
+            console.log(whereArr)
+            const users_query = await Users.query().where(whereArr).orderBy('name','asc').get();
+            //const users = await db.table('users').select('id','name','email','gender','country','phoneno','employee_type','employee_role','status').paginate(1,2).get()
+            //console.log(users)
+            const result = {
+                msg: 'success',
+                errortype: 1,
+                data: users_query
+            }
+            res.status(200).json(result)
+        }else{
+            res.status(500).json({msg:'Role cannot be empty'})
+        }
+        }catch(err){
+            console.log(err)
+            res.status(500).json({msg:'Internal server error'})
+        }
+}
+

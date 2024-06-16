@@ -20,6 +20,7 @@ const init = {
             table.string('salary');
             table.date('datejoining');
             table.tinyint('canlogin');
+            table.integer('isassigned').defaultTo(1);
             table.tinyint('status');
             table.uuid('created_by');
             table.uuid('updated_by');
@@ -134,6 +135,21 @@ const init = {
             table.foreign('created_by').references('id').inTable('users')
             table.foreign('updated_by').references('id').inTable('users')
             table.foreign('clientid').references('id').inTable('client_details')
+          }).createTable('client_assign_employee',(table)=>{
+            table.uuid('id');
+            table.uuid('clientid');
+            table.uuid('contractid');
+            table.string('employee_role');
+            table.uuid('employee_id');
+            table.uuid('created_by');
+            table.uuid('updated_by');
+            table.timestamps();
+            table.primary('id');
+            table.foreign('created_by').references('id').inTable('users')
+            table.foreign('updated_by').references('id').inTable('users')
+            table.foreign('employee_id').references('id').inTable('users')
+            table.foreign('clientid').references('id').inTable('client_details')
+            table.foreign('contractid').references('id').inTable('client_contract_details')
           })
     },
     down: async()=>{
