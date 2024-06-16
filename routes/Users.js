@@ -19,6 +19,7 @@ router.get("/getuserbasic/:empid", jwtMiddleware, UserModule.getUserBasic);
 router.post("/login", UserModule.login);  
 //jwtMiddleware,
 router.get("/listuser", jwtMiddleware, UserModule.listUser);  
+router.get("/listuser/:role", jwtMiddleware, UserModule.getEmployeesByCondition);  
 
 
 module.exports = router;

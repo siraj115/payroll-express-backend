@@ -1,6 +1,7 @@
 const {db} = require('../connection')
 const {Clients} = require('../model/Clients')
 const {ClientContractDetails} = require('../model/ClientContractDetails')
+const {ClientAssignEmployee} = require('../model/ClientAssignEmployee')
 
 require("dotenv").config({ path: `./.env.dev` });
 const {generateRefreshToken, generateToken} = require('../services/jwt')
@@ -10,7 +11,8 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 
 const sharp = require('sharp')
-const {randomName} = require('../services/commonServices')
+const {randomName} = require('../services/commonServices');
+const { Users } = require('../model/Users');
 
 const bucketName = process.env.BUCKET_NAME
 const bucketRegion = process.env.BUCKET_REGION
@@ -204,13 +206,60 @@ exports.getClientalldetails = async(req,res)=>{
     try{
         const {clientid} = req.params;
         const client = await Clients.query().find(clientid);
+        if(!client){
+            return res.status(200).json({errortype:2, msg:'Client not found'})            
+        }
         const clientContract = await client.related('ClientContractDetails').get()
-    
-        client.contractdetails = clientContract;
-        res.status(200).json({msg:'Success', client})
+        client.contractdetails = clientContract || null;
+
+        return res.status(200).json({msg:'Success 1', data:client})
     }catch(err){
         console.log(err)
         res.status(500).json({msg:'Internal server error'})
     }
     
+}
+
+
+exports.assignEmployee  = async(req,res)=>{
+    try{
+        const {clientid, contractid , login_userid, femaleemp, maleemp, supervisor} = req.body;
+        const insertObj = {}
+        const created_by = login_userid;
+        const updated_by = login_userid;
+        const combineEmployees = [
+            ...supervisor.map(item=>({clientid,contractid,created_by,updated_by,employee_id:item.value,employee_role:'supervisor'})),
+            ...maleemp.map(item=>({clientid,contractid,created_by,updated_by,employee_id:item.value,employee_role:'male'})),
+            ...femaleemp.map(item=>({clientid,contractid,created_by,updated_by,employee_id:item.value,employee_role:'female'}))
+        ]
+        const whereArr = {}
+        whereArr.clientid = clientid;
+        whereArr.contractid = contractid;
+        
+        const users_query           = ClientAssignEmployee.query().where(whereArr);
+        const assignedEmployees     = await users_query.get()
+        console.log(assignedEmployees)
+        const employeeIds           = combineEmployees.map(emp=>emp.employee_id)
+        const nonMatchingIds        = assignedEmployees.filter(id=> !employeeIds.includes(id))
+        console.log(nonMatchingIds)
+        res.status(200).json({msg:'Internal server error', data:combineEmployees, nonMatchingIds})
+        const employee_ids = assignedEmployees.map(emp=>emp.employee_id)
+        
+        await ClientAssignEmployee.query().where(whereArr).delete()
+        for(const item of combineEmployees){
+            console.log(item)
+            item.employee_id
+            user_json ={}
+            user_json.isassigned = 1;
+            //console.log(user_json)
+            await Users.query().where('id',clientid).update(user_json)
+            const usersdetails = new ClientAssignEmployee(item)     
+            await usersdetails.save();
+        }
+        
+        res.status(200).json({msg:'Internal server error', data:combineEmployees})
+    }catch(err){
+        console.log(err)
+        res.status(500).json({msg:'Internal server error'})
+    }
 }
