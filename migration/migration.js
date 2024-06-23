@@ -106,6 +106,7 @@ const init = {
             table.string('contactemail');
             table.text('address');
             table.string('companytrn');
+            table.integer('isEmployeeAssigned').defaultTo(0);
             table.integer('status').defaultTo(1);
             table.uuid('created_by');
             table.uuid('updated_by');
@@ -127,6 +128,7 @@ const init = {
             table.string('amountsupervisor');
             table.string('vattax');
             table.string('contractpdf');
+            table.integer('isEmployeeAssigned').defaultTo(0);
             table.integer('status').defaultTo(1);
             table.uuid('created_by');
             table.uuid('updated_by');
