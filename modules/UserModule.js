@@ -217,7 +217,7 @@ exports.getUser = async(req,res)=>{
                     Key: userExist.employee_photo
                 }
                 const command = new GetObjectCommand(getObjectParams_passport);
-                labour_card_url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+                labour_card_url = await getSignedUrl(s3, command, { expiresIn: fileExpirySession });
             }
             userExist.employee_photo = labour_card_url;
             res.status(200).json({data:userExist})

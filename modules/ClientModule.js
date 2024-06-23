@@ -12,6 +12,7 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const sharp = require('sharp')
 const {randomName} = require('../services/commonServices');
+const {getUsers} = require('../services/dbService')
 const { Users } = require('../model/Users');
 
 const bucketName = process.env.BUCKET_NAME
@@ -185,8 +186,15 @@ exports.allclients = async(req,res)=>{
 }
 exports.allClientNames = async(req,res)=>{
     try{
-        
-        const users_query   = Clients.query().where('status',1).orderBy('companyname','asc');
+        const {type}        = req.params;
+        const arrwhere      = {};
+        arrwhere.status     = 1;
+        if(type != undefined){
+            if(type=='notassigned'){
+                arrwhere.isEmployeeAssigned     = 0;
+            }
+        }
+        const users_query   = Clients.query().where(arrwhere).orderBy('companyname','asc');
         const users         = await users_query.get()
         //const users = await db.table('users').select('id','name','email','gender','country','phoneno','employee_type','employee_role','status').paginate(1,2).get()
         //console.log(users)
@@ -211,8 +219,33 @@ exports.getClientalldetails = async(req,res)=>{
         }
         const clientContract = await client.related('ClientContractDetails').get()
         client.contractdetails = clientContract || null;
+        var assigned_employees= {}
+        var employeeids = []
+        if(Object.values(clientContract)[0].length>0){
+            //console.log('hi')            console.log(clientContract.toArray()[0].id)
+            const whereArr = {}
 
-        return res.status(200).json({msg:'Success 1', data:client})
+            whereArr.clientid = clientContract.toArray()[0].clientid;
+            whereArr.contractid = clientContract.toArray()[0].id;
+            console.log(whereArr)
+            const assigned_employees_qry =  ClientAssignEmployee.query().where(whereArr);
+            const assigned_employees_get = await assigned_employees_qry.get()
+            
+            
+            assigned_employees = assigned_employees_get.reduce((acc, employee)=>{
+                console.log(employee.attributes)
+                const role = employee.employee_role;
+                employeeids.push(employee.employee_id)
+                if(!acc[role]){
+                    acc[role] = []
+                }
+                acc[role].push(employee)
+                return acc;
+            },{})
+
+        }
+        const employeeDetails = await getUsers(employeeids)
+        return res.status(200).json({msg:'Success', data:client, assigned_employees, employeeDetails,employeeids})
     }catch(err){
         console.log(err)
         res.status(500).json({msg:'Internal server error'})
@@ -238,26 +271,37 @@ exports.assignEmployee  = async(req,res)=>{
         
         const users_query           = ClientAssignEmployee.query().where(whereArr);
         const assignedEmployees     = await users_query.get()
-        console.log(assignedEmployees)
+        //console.log(assignedEmployees)
         const employeeIds           = combineEmployees.map(emp=>emp.employee_id)
-        const nonMatchingIds        = assignedEmployees.filter(id=> !employeeIds.includes(id))
-        console.log(nonMatchingIds)
-        res.status(200).json({msg:'Internal server error', data:combineEmployees, nonMatchingIds})
-        const employee_ids = assignedEmployees.map(emp=>emp.employee_id)
+        const nonMatchingIds        = assignedEmployees.filter(emp=> !employeeIds.includes(emp.employee_id))
+        
         
         await ClientAssignEmployee.query().where(whereArr).delete()
         for(const item of combineEmployees){
-            console.log(item)
-            item.employee_id
+            //console.log(item)
+            
             user_json ={}
             user_json.isassigned = 1;
+            user_json.updated_by = updated_by;
             //console.log(user_json)
-            await Users.query().where('id',clientid).update(user_json)
+            await Users.query().where('id',item.employee_id).update(user_json)
             const usersdetails = new ClientAssignEmployee(item)     
             await usersdetails.save();
         }
-        
-        res.status(200).json({msg:'Internal server error', data:combineEmployees})
+        for(const item of nonMatchingIds){
+            //console.log(item.employee_id)
+            user_json ={}
+            user_json.isassigned = 0;
+            user_json.updated_by = updated_by;
+            //console.log(user_json)
+            await Users.query().where('id',item.employee_id).update(user_json)
+        }
+        const client_json = {
+            isEmployeeAssigned:1
+        }
+        await Clients.query().where('id',clientid).update(client_json)
+        await ClientContractDetails.query().where('id',contractid).update(client_json)
+        res.status(200).json({msg:'Successfully assigned employees', errortype:1})
     }catch(err){
         console.log(err)
         res.status(500).json({msg:'Internal server error'})
